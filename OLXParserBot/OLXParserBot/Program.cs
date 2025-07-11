@@ -12,8 +12,8 @@ class Program
         Console.OutputEncoding = System.Text.Encoding.UTF8;
 
         // 🔑 Telegram дані
-        string botToken = "7954672616:AAF4LoS3NEipXmWeTs-9pr9OX_n6SrrRFUE";
-        string chatId = "5991091165";
+        string botToken = Environment.GetEnvironmentVariable("BOT_TOKEN");
+        string chatId = Environment.GetEnvironmentVariable("CHAT_ID");
 
         Dictionary<string, List<string>> categories = new Dictionary<string, List<string>>
         {
