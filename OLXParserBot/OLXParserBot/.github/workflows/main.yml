@@ -1,0 +1,30 @@
+name: OLX Parser Bot
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Запуск кожні 5 хвилин
+  workflow_dispatch:       # Дозволяє запускати вручну
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run parser
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: dotnet run --project ./OLXParserBot/OLXParserBot.csproj --no-build
