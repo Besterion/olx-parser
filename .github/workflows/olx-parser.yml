@@ -1,0 +1,28 @@
+name: OLX Parser Bot
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run-parser:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 🛎 Клонування репозиторію
+      uses: actions/checkout@v3
+
+    - name: ⚙️ Встановлення .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: 📦 Restore
+      run: dotnet restore
+
+    - name: 🔨 Build
+      run: dotnet build --configuration Release
+
+    - name: 🚀 Запуск парсера
+      run: dotnet run --project OLXParserBot.csproj
