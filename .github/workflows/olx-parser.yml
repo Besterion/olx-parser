@@ -1,35 +1,19 @@
-name: CI - Build & OLX Parser
+name: CI - OLX Parser
 
 on:
   push:
     branches: [ master ]
   schedule:
-    - cron: "*/5 * * * *" # Кожні 5 хв
-  workflow_dispatch:
+    - cron: "*/5 * * * *"  # Кожні 5 хвилин
+  workflow_dispatch:        # Можна запустити вручну
 
 jobs:
-  build:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --no-restore
-
   run-parser:
-    # Ось тут зміна: додайте 'github.event_name == 'push' ||'
-    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID:  ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
       - name: 🛎 Клонування репозиторію
@@ -40,11 +24,32 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: 📦 Restore
+      - name: ⏱️ Кешування NuGet-пакетів
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: 📦 Відновлення залежностей
         run: dotnet restore
 
-      - name: 🔨 Build
-        run: dotnet build --configuration Release
+      - name: 🔨 Публікація (Release)
+        run: dotnet publish -c Release -o out
 
       - name: 🚀 Запуск парсера
-        run: dotnet run --project OLXParserBot.csproj
+        run: dotnet out/OLXParserBot.dll
+
+      - name: 💾 Коміт оновлених файлів (*.txt)
+        if: ${{ success() }}
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name  "GitHub Actions"
+          if git status --porcelain | grep '\.txt'; then
+            git add *.txt
+            git commit -m "update: parser data [skip ci]"
+            git push
+          else
+            echo "✅ Файли не змінилися — пуш не потрібен."
+          fi
