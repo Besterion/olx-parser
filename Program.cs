@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
-using System.Linq;
 using System.Threading.Tasks;
 
 class Program
@@ -12,9 +11,8 @@ class Program
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-        // ▸ краще брати з Environment, але залишаю, як було
         string botToken = "7954672616:AAF4LoS3NEipXmWeTs-9pr9OX_n6SrrRFUE";
-        string chatId = "5991091165";
+        string chatId = "-1002710458430"; // <-- Встав сюди ID твоєї групи
 
         var categories = new Dictionary<string, List<string>>
         {
@@ -61,20 +59,18 @@ class Program
 
                 foreach (var card in cards)
                 {
-                    // дата + місто
                     var dateNode = card.SelectSingleNode(".//p[@data-testid='location-date']");
                     string dateText = dateNode?.InnerText?.Trim() ?? "";
 
                     if (!dateText.Contains("Сьогодні", StringComparison.OrdinalIgnoreCase))
-                        continue;                           // не сьогодні → пропускаємо
+                        continue;
 
-                    // посилання
                     var linkNode = card.SelectSingleNode(".//a[@href]");
                     string link = linkNode?.GetAttributeValue("href", "") ?? "";
                     if (string.IsNullOrWhiteSpace(link)) continue;
                     if (!link.StartsWith("http")) link = "https://www.olx.ua" + link;
 
-                    if (processed.Add(link))              // Add==true → нового ще не було
+                    if (processed.Add(link))
                         fresh.Add(link);
                 }
             }
