@@ -42,17 +42,17 @@ jobs:
         run: dotnet out/OLXParserBot.dll
 
       - name: 💾 Коміт оновлених файлів (*.txt)
-        if: ${{ success() }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add *.txt
-
-          if git diff --cached --quiet; then
-            echo "✅ Немає змін — пуш не потрібен."
-          else
-            git commit -m "update: parser data [skip ci]"
-            git pull --rebase
-            git push
-          fi
+  if: ${{ success() }}
+  run: |
+    git config user.name "github-actions[bot]"
+    git config user.email "github-actions[bot]@users.noreply.github.com"
+    git add *.txt
+    if git diff --cached --quiet; then
+      echo "✅ Немає змін — пуш не потрібен."
+    else
+      git commit -m "update: parser data [skip ci]"
+      git stash --include-untracked
+      git pull --rebase
+      git stash pop
+      git push
+    fi
