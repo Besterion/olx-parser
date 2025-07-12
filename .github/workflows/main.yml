@@ -48,9 +48,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add *.txt
           if git diff --cached --quiet; then
-            echo "✅ Немає змін — пушити нічого."
+            echo "✅ Немає змін — пуш не потрібен."
           else
             git commit -m "update: parser data [skip ci]"
+            git stash --include-untracked
             git pull --rebase
+            git stash pop
             git push
           fi
