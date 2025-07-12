@@ -1,28 +1,50 @@
-name: OLX Parser Bot
+name: CI - Build & OLX Parser
 
 on:
+  push:
+    branches: [ master ]
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/5 * * * *" # Кожні 5 хв
   workflow_dispatch:
 
 jobs:
-  run-parser:
+  build:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
-    - name: 🛎 Клонування репозиторію
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: ⚙️ Встановлення .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
 
-    - name: 📦 Restore
-      run: dotnet restore
+      - name: Restore dependencies
+        run: dotnet restore
 
-    - name: 🔨 Build
-      run: dotnet build --configuration Release
+      - name: Build
+        run: dotnet build --no-restore
 
-    - name: 🚀 Запуск парсера
-      run: dotnet run --project OLXParserBot.csproj
+  run-parser:
+    # Ось тут зміна: додайте 'github.event_name == 'push' ||'
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛎 Клонування репозиторію
+        uses: actions/checkout@v3
+
+      - name: ⚙️ Встановлення .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Restore
+        run: dotnet restore
+
+      - name: 🔨 Build
+        run: dotnet build --configuration Release
+
+      - name: 🚀 Запуск парсера
+        run: dotnet run --project OLXParserBot.csproj
