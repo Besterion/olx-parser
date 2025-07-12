@@ -76,11 +76,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\User\\source\\repos\\OLXParserBot\\OLXParserBot\\OLXParserBot.csproj",
+      "projectUniqueName": "C:\\Users\\User\\Desktop\\olx-parser\\OLXParserBot.csproj",
       "projectName": "OLXParserBot",
-      "projectPath": "C:\\Users\\User\\source\\repos\\OLXParserBot\\OLXParserBot\\OLXParserBot.csproj",
+      "projectPath": "C:\\Users\\User\\Desktop\\olx-parser\\OLXParserBot.csproj",
       "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\User\\source\\repos\\OLXParserBot\\OLXParserBot\\obj\\",
+      "outputPath": "C:\\Users\\User\\Desktop\\olx-parser\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

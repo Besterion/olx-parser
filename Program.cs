@@ -3,126 +3,103 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
+using System.Linq;
 using System.Threading.Tasks;
 
 class Program
 {
-    static async Task Main(string[] args)
+    static async Task Main()
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-        // 🔑 Telegram дані
+        // ▸ краще брати з Environment, але залишаю, як було
         string botToken = "7954672616:AAF4LoS3NEipXmWeTs-9pr9OX_n6SrrRFUE";
         string chatId = "5991091165";
 
-        Dictionary<string, List<string>> categories = new Dictionary<string, List<string>>
+        var categories = new Dictionary<string, List<string>>
         {
+            ["Кросівки"] = new()
             {
-                "Кросівки", new List<string>
-                {
-                    "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&search%5Border%5D=created_at:desc",
-                    "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&page=2&search%5Border%5D=created_at:desc",
-                    "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&page=3&search%5Border%5D=created_at:desc"
-                }
+                "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&search%5Border%5D=created_at:desc",
+                "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&page=2&search%5Border%5D=created_at:desc",
+                "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&page=3&search%5Border%5D=created_at:desc"
             },
+            ["Футбол"] = new()
             {
-                "Футбол", new List<string>
-                {
-                    "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&search%5Border%5D=created_at:desc",
-                    "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&page=2&search%5Border%5D=created_at:desc",
-                    "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&page=3&search%5Border%5D=created_at:desc"
-                }
+                "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&search%5Border%5D=created_at:desc",
+                "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&page=2&search%5Border%5D=created_at:desc",
+                "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&page=3&search%5Border%5D=created_at:desc"
             }
         };
 
-        HttpClient httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+        var http = new HttpClient();
+        http.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
 
-        foreach (var category in categories)
+        foreach (var (cat, urls) in categories)
         {
-            string categoryName = category.Key;
-            string fileName = $"{categoryName}.txt";
+            string fileName = $"{cat}.txt";
+            var processed = File.Exists(fileName)
+                ? new HashSet<string>(await File.ReadAllLinesAsync(fileName))
+                : new HashSet<string>();
 
-            // Читання збережених оголошень
-            HashSet<string> existingAds = new HashSet<string>();
-            if (File.Exists(fileName))
+            var fresh = new List<string>();
+
+            foreach (var url in urls)
             {
-                var lines = await File.ReadAllLinesAsync(fileName);
-                foreach (var line in lines)
-                    existingAds.Add(line);
-            }
+                Console.WriteLine($"\n===== {cat} =====\n{url}\n");
 
-            List<string> newAds = new List<string>();
+                string html = await http.GetStringAsync(url);
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
 
-            foreach (string categoryUrl in category.Value)
-            {
-                Console.WriteLine($"\n=======================");
-                Console.WriteLine($"🏷 Категорія: {categoryName}");
-                Console.WriteLine($"🔗 {categoryUrl}");
-                Console.WriteLine($"=======================\n");
-
-                var html = await httpClient.GetStringAsync(categoryUrl);
-                var htmlDoc = new HtmlDocument();
-                htmlDoc.LoadHtml(html);
-
-                var ads = htmlDoc.DocumentNode.SelectNodes("//div[@data-cy='l-card']");
-                if (ads == null)
+                var cards = doc.DocumentNode.SelectNodes("//div[@data-cy='l-card']");
+                if (cards == null)
                 {
-                    Console.WriteLine("❌ Нічого не знайдено на цій сторінці!\n");
+                    Console.WriteLine("❌ Карток не знайдено.");
                     continue;
                 }
 
-                foreach (var ad in ads)
+                foreach (var card in cards)
                 {
-                    var dateNode = ad.SelectSingleNode(".//span[@data-cy='ad-posted-at']");
+                    // дата + місто
+                    var dateNode = card.SelectSingleNode(".//p[@data-testid='location-date']");
                     string dateText = dateNode?.InnerText?.Trim() ?? "";
 
-                    if (!dateText.StartsWith("Сьогодні"))
-                        continue;
+                    if (!dateText.Contains("Сьогодні", StringComparison.OrdinalIgnoreCase))
+                        continue;                           // не сьогодні → пропускаємо
 
-                    var linkNode = ad.SelectSingleNode(".//a[@href]");
-                    string link = linkNode?.GetAttributeValue("href", "");
+                    // посилання
+                    var linkNode = card.SelectSingleNode(".//a[@href]");
+                    string link = linkNode?.GetAttributeValue("href", "") ?? "";
+                    if (string.IsNullOrWhiteSpace(link)) continue;
+                    if (!link.StartsWith("http")) link = "https://www.olx.ua" + link;
 
-                    if (string.IsNullOrWhiteSpace(link))
-                        continue;
-
-                    if (!link.StartsWith("http"))
-                        link = "https://www.olx.ua" + link;
-
-                    var titleNode = ad.SelectSingleNode(".//h4");
-                    string title = titleNode?.InnerText?.Trim() ?? "[без назви]";
-
-                    string adLine = $"{title} | {link}";
-
-                    if (!existingAds.Contains(adLine))
-                        newAds.Add(adLine);
+                    if (processed.Add(link))              // Add==true → нового ще не було
+                        fresh.Add(link);
                 }
             }
 
-            if (newAds.Count == 0)
+            if (fresh.Count == 0)
             {
-                Console.WriteLine($"ℹ️ В категорії '{categoryName}' нових оголошень немає.");
+                Console.WriteLine($"ℹ️ У «{cat}» нових оголошень немає.");
+                continue;
             }
-            else
+
+            await File.AppendAllLinesAsync(fileName, fresh);
+
+            foreach (var link in fresh)
             {
-                await File.AppendAllLinesAsync(fileName, newAds);
-
-                foreach (var adLine in newAds)
-                {
-                    Console.WriteLine($"🆕 {adLine}");
-
-                    // Відправити в Telegram
-                    await SendTelegramMessage(botToken, chatId, adLine);
-                }
+                Console.WriteLine($"🆕 {link}");
+                await SendTelegram(botToken, chatId, link);
             }
         }
     }
 
-    // 🔔 Метод для надсилання повідомлень у Telegram
-    static async Task SendTelegramMessage(string botToken, string chatId, string message)
+    static async Task SendTelegram(string token, string chatId, string text)
     {
-        using var httpClient = new HttpClient();
-        string url = $"https://api.telegram.org/bot{botToken}/sendMessage?chat_id={chatId}&text={Uri.EscapeDataString(message)}";
-        await httpClient.GetAsync(url);
+        using var cli = new HttpClient();
+        string api = $"https://api.telegram.org/bot{token}/sendMessage" +
+                     $"?chat_id={chatId}&text={Uri.EscapeDataString(text)}";
+        await cli.GetAsync(api);
     }
 }
