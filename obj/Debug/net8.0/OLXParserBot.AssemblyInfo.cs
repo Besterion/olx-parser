@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OLXParserBot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7068bea89faf9dcc24d9b51b2d04c9a07ba77180")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b7eb7f1ba2347c0c9a42f49856a5ad492055e234")]
 [assembly: System.Reflection.AssemblyProductAttribute("OLXParserBot")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OLXParserBot")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
