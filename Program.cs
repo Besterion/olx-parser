@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -12,25 +13,27 @@ class Program
         Console.OutputEncoding = System.Text.Encoding.UTF8;
 
         string botToken = "7954672616:AAF4LoS3NEipXmWeTs-9pr9OX_n6SrrRFUE";
-        string chatId = "-1002710458430"; // <-- Встав сюди ID твоєї групи
+        string chatId = "-1002710458430";
 
         var categories = new Dictionary<string, List<string>>
         {
             ["Кросівки"] = new()
             {
-                "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&search%5Border%5D=created_at:desc",
-                "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&page=2&search%5Border%5D=created_at:desc",
-                "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&page=3&search%5Border%5D=created_at:desc"
+                "https://www.olx.ua/uk/moda-i-stil/muzhskaya-obuv/krossovki/zal-trenirovki/?currency=UAH&min_id=893747056&reason=observed_search&search%5Border%5D=created_at%3Adesc"
             },
             ["Футбол"] = new()
             {
-                "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&search%5Border%5D=created_at:desc",
-                "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&page=2&search%5Border%5D=created_at:desc",
-                "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&page=3&search%5Border%5D=created_at:desc"
+                "https://www.olx.ua/uk/hobbi-otdyh-i-sport/sport-otdyh/futbol/?currency=UAH&min_id=893752454&reason=observed_search&search%5Border%5D=created_at%3Adesc"
             }
         };
 
-        var http = new HttpClient();
+        var handler = new HttpClientHandler();
+        handler.CookieContainer = new CookieContainer();
+
+        // Додаємо кукі з браузера
+        handler.CookieContainer.Add(new Uri("https://www.olx.ua"), new Cookie("auth_state", "eyJzdWIiOiJlZGY2YTZjOC1hMzgzLTQ3ZGYtYmRhMC05ZTJlZjQwMDYyNjIifQ=="));
+
+        var http = new HttpClient(handler);
         http.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
 
         foreach (var (cat, urls) in categories)
@@ -59,17 +62,18 @@ class Program
 
                 foreach (var card in cards)
                 {
-                    var dateNode = card.SelectSingleNode(".//p[@data-testid='location-date']");
-                    string dateText = dateNode?.InnerText?.Trim() ?? "";
+                    // 1. залишаємо лише картки з міткою «Новинка»
+                    var tagNode = card.SelectSingleNode(".//p[normalize-space()='Новинка']") ??
+                                  card.SelectSingleNode(".//p[contains(text(),'Новинка')]");
+                    if (tagNode == null) continue;
 
-                    if (!dateText.Contains("Сьогодні", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
+                    // 2. дістаємо посилання
                     var linkNode = card.SelectSingleNode(".//a[@href]");
                     string link = linkNode?.GetAttributeValue("href", "") ?? "";
                     if (string.IsNullOrWhiteSpace(link)) continue;
                     if (!link.StartsWith("http")) link = "https://www.olx.ua" + link;
 
+                    // 3. фільтр на унікальність і додавання у список «свіжих»
                     if (processed.Add(link))
                         fresh.Add(link);
                 }
